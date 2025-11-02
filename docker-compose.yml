@@ -1,0 +1,9 @@
+services:
+  quartzguard:
+    restart: unless-stopped
+    build: .
+    volumes:
+      - .:/app
+      - /var/lib/pterodactyl/volumes/server/:/server:ro
+    environment:
+      - PYTHONUNBUFFERED=1
