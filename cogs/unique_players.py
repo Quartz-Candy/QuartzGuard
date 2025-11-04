@@ -44,33 +44,33 @@ class UniquePlayers(commands.Cog):
     @tasks.loop(seconds=120)
     async def check_for_new_players(self):
         with open(self.unique_players_file, "r", encoding="utf-8") as players:
-            unique_players = players.readlines()
+            unique_players = {line.strip() for line in players}
 
         stat_files = os.listdir(self.stats_dir)
-        if len(unique_players) < len(stat_files):
-            for stat in stat_files:
-                if stat not in unique_players:
-                    uuid = stat[:-5]
-                    player = self._get_username(uuid)
-                    self.logger.write("info", f"Found new player {player} | {uuid}")
 
-                    embed = discord.Embed(title=player,
-                                          colour=0x00b0f4,
-                                          timestamp=datetime.now())
-                    embed.set_author(name="New player!")
-                    embed.set_image(url=f"https://mc-heads.net/head/{uuid}")
+        for stat in stat_files:
+            uuid = stat[:-5]
+            if uuid not in unique_players:
+                player = self._get_username(uuid)
+                self.logger.write("info", f"Found new player {player} | {uuid}")
 
-                    await self.bot_channel.send(embed=embed)
-                    self.logger.write("info", f"Announced new player {player}")
+                embed = discord.Embed(title=player,
+                                      colour=0x00b0f4,
+                                      timestamp=datetime.now())
+                embed.set_author(name="New player!")
+                embed.set_image(url=f"https://mc-heads.net/head/{uuid}")
 
-                    if await self._post_to_player_list(uuid, player) == 200:
-                        self.logger.write("info", f"Added {player} to site")
-                    else:
-                        self.logger.write("info", f"Added {player} to site")
+                await self.bot_channel.send(embed=embed)
+                self.logger.write("info", f"Announced new player {player}")
 
-                    with open(self.unique_players_file, "a+", encoding="utf-8") as file:
-                        file.write(stat + "\n")
-                        self.logger.write("info", f"Wrote {stat} to unique_players.txt")
+                if await self._post_to_player_list(uuid, player) == 200:
+                    self.logger.write("info", f"Added {player} to site")
+                else:
+                    self.logger.write("info", f"Failed to add {player} to site")
+
+                with open(self.unique_players_file, "a+", encoding="utf-8") as file:
+                    file.write(f"{uuid}\n")
+                    self.logger.write("info", f"Wrote {uuid} to unique_players.txt")
 
     async def _post_to_player_list(self, uuid, username):
         html = await self.wp.get_page(self.player_page_id)
